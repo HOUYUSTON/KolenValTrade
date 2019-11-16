@@ -1,0 +1,178 @@
+/*let uznal = Model.findOne({name: 'Beetle'}).populate('manufactor').exec(async (err,model) => {
+		if (err) return handleError(err);
+		console.log('Manufactor ', model.manufactor.name)
+		model.manufactor.models.forEach(modelId => {
+			Model.findOne({_id: modelId}).exec(async(err,model) => {
+				if (err) return handleError(err);
+				console.log('Model ', model.name)
+			})
+		})
+	})
+
+let uznal2 = City.find().exec( (err,cities) => {
+	if (err) return handleError(err);
+	cities.forEach(name => {
+		City.findOne({name: name.name}).populate('region').exec(async (err,city) => {
+			if (err) return handleError(err);
+			console.log('Region ', city.region.name)
+			city.region.cities.forEach(cityId => {
+				City.findOne({_id: cityId}).exec(async(err,city) => {
+					if (err) return handleError(err);
+					console.log('City ', city.name)
+				})
+			})
+		})
+	})
+})*/
+
+let models = []
+let microUznal = Manufactor.findOne({name: 'BMW'}).exec( (err,manufactor) => {
+	if (err) return handleError(err);
+	manufactor.models.forEach(Id => {
+		Model.findOne({_id: Id}).exec(async(err,model) => {
+					if (err) return handleError(err);
+					models.push(model)
+					console.log(model)
+				})
+	})
+})
+
+/*let regions
+let cities
+
+fetch('https://developers.ria.com/auto/states?api_key=3cbJxz8IpEvwHNJV9RkSP4k0195ijn0Hl5mALs2t', {
+  method: 'GET',
+  headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+})
+.then(res => res.json())
+.then(data => { 
+	regions = data 
+	regions.forEach(async elem => {
+		let {value, ...name} = elem
+		let tmp = new Region(name)
+		tmp._id = new mongoose.Types.ObjectId()
+		await tmp.save()//.then(() => console.log(tmp.name + ' saved'))
+		fetch(`https://developers.ria.com/auto/states/${value}/cities?api_key=3cbJxz8IpEvwHNJV9RkSP4k0195ijn0Hl5mALs2t`, {
+			method: 'GET',
+			headers: {
+			        'Content-Type': 'application/json',
+			        'Accept': 'application/json'
+			}
+		})
+		.then(r => r.json())
+		.then(async d => {
+			cities = d
+			cities.forEach(async el => {
+				let {value, ...name} = el
+				name.region = tmp._id
+				let jmp = new City(name)
+				jmp._id = new mongoose.Types.ObjectId()
+				tmp.cities.push(jmp._id)
+				console.log('после добавления 1 города',tmp)
+				await jmp.save()//.then(() => console.log(jmp.name + ' saved'))
+			})			
+			console.log('после добавления всех городов',tmp)
+			await tmp.save().then(() => console.log(tmp.name + ' saved'))
+		})
+	})
+})*/
+
+
+
+/*let manufactors
+let models
+
+fetch('https://developers.ria.com/auto/categories/1/marks?api_key=3cbJxz8IpEvwHNJV9RkSP4k0195ijn0Hl5mALs2t', {
+  method: 'GET',
+  headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+})
+.then(res => res.json())
+.then(data => { 
+	manufactors = data 
+	manufactors.forEach(async elem => {
+		let {value, ...name} = elem
+		let tmp = new Manufactor(name)
+		tmp._id = new mongoose.Types.ObjectId()
+		await tmp.save()//.then(() => console.log(tmp.name + ' saved'))
+		fetch(`https://developers.ria.com/auto/categories/1/marks/${value}/models?api_key=3cbJxz8IpEvwHNJV9RkSP4k0195ijn0Hl5mALs2t`, {
+			method: 'GET',
+			headers: {
+			        'Content-Type': 'application/json',
+			        'Accept': 'application/json'
+			}
+		})
+		.then(r => r.json())
+		.then(async d => {
+			models = d
+			models.forEach(async el => {
+				let {value, ...name} = el
+				name.manufactor = tmp._id
+				let jmp = new Model(name)
+				jmp._id = new mongoose.Types.ObjectId()
+				tmp.models.push(jmp._id)
+				await jmp.save().then(() => console.log(jmp.name + ' saved'))
+			})
+			await tmp.save().then(() => console.log(tmp.name + ' saved'))
+		})
+	})
+})*/
+
+/*let bodyTypes
+
+fetch('https://developers.ria.com/auto/categories/1/bodystyles?api_key=3cbJxz8IpEvwHNJV9RkSP4k0195ijn0Hl5mALs2t', {
+  method: 'GET',
+  headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+})
+.then(res => res.json())
+.then(data => { 
+	bodyTypes = data
+	bodyTypes.forEach(async bodyType => {
+		let {value, ...name} = bodyType
+		let jmp = new BodyType(name)
+		jmp._id = new mongoose.Types.ObjectId()
+		await jmp.save().then(() => console.log(jmp.name + ' saved'))
+	})
+})
+
+let fuelTypes = [
+    { name: "Бензин", value: 1 },
+    { name: "Дизель", value: 2 },
+    { name: "Газ", value: 3 },
+    { name: "Газ/бензин", value: 4 },
+    { name: "Гибрид", value: 5 },
+    { name: "Электро", value: 6 },
+    { name: "Другое", value: 7 },
+    { name: "Газ метан", value: 8 },
+    { name: "Газ пропан-бутан", value: 9 }
+]
+
+fuelTypes.forEach(async fuelType => {
+		let {value, ...name} = fuelType
+		let jmp = new FuelType(name)
+		jmp._id = new mongoose.Types.ObjectId()
+		await jmp.save().then(() => console.log(jmp.name + ' saved'))
+	})
+
+let gearboxTypes = [
+    { name: "Ручная / Механика", value: 1 },
+    { name: "Автомат", value: 2 },
+    { name: "Типтроник", value: 3 },
+    { name: "Адаптивная", value: 4 },
+    { name: "Вариатор", value: 5 }
+]
+
+gearboxTypes.forEach(async gearboxType => {
+		let {value, ...name} = gearboxType
+		let jmp = new GearboxType(name)
+		jmp._id = new mongoose.Types.ObjectId()
+		await jmp.save().then(() => console.log(jmp.name + ' saved'))
+	})*/
