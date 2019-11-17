@@ -18,6 +18,7 @@ var userSchema = new mongoose.Schema({
 	ads: [{type: mongoose.Schema.Types.ObjectId, ref: 'CarAd'}],
 	photos: [String],
 	phones: [String],
+	name: String,
 	privilege: Boolean
 })
 
@@ -288,18 +289,18 @@ app.post('/register', async (req,res) => {
 
 app.post('/login', async (req,res) => {//сделать прроверку есть ли токен
 	let user = await User.findOne(req.body)
+	console.log(user)
 	if(user) {
 		let {password, ...userInfo} = user.toObject()
 		const token = jwt.sign({user: userInfo}, secret)
 		res.status(201).json(token)
 	}
 	else{
-		res.status(404)
+		res.status(404).json('login or password is not correct')
 	}
 })
 
 app.post('/autologin', async (req,res) => {
-	console.log(req.body)
 	let user = await User.findOne(jwtCheck(req.body, secret))
 	if(user) {
 		let {password, ...userInfo} = user.toObject()
