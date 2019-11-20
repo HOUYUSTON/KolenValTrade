@@ -55,19 +55,19 @@ var statusSchema = new mongoose.Schema({
 
 var releasedSchema = new mongoose.Schema({
 	_id: mongoose.Schema.Types.ObjectId,
-	released: Boolean,
+	name: String,
 	ads: [{type: mongoose.Schema.Types.ObjectId, ref: 'CarAd'}]
 })
 
 var afterCrashSchema = new mongoose.Schema({
 	_id: mongoose.Schema.Types.ObjectId,
-	afterCrash: Boolean,
+	name: String,
 	ads: [{type: mongoose.Schema.Types.ObjectId, ref: 'CarAd'}]
 })
 
 var runningSchema = new mongoose.Schema({
 	_id: mongoose.Schema.Types.ObjectId,
-	running: Boolean,
+	name: String,
 	ads: [{type: mongoose.Schema.Types.ObjectId, ref: 'CarAd'}]
 })
 
@@ -149,7 +149,9 @@ function jwtWare() {
             '/register',
             '/login',
             '/getAds',
-            '/favicon.ico'
+            '/getParams',
+            '/favicon.ico',
+            '/babel/parser/lib/index.js'
         ]
     });
 }
@@ -162,36 +164,6 @@ function jwtWare() {
         const decoded = jwt.verify(token, secret)
         return decoded
     }
-}*/
-
-/*let region = {}
-let cities = []
-
-async function jopa(){
-	return new Promise((resolve) => {
-		region.cities.forEach(async cityId => {
-			await City.findOne({_id: cityId}).exec(async(err,city) => {
-						if (err) return handleError(err);
-						cities.push(city)
-					})
-		})
-		if(cities) {
-				console.log(cities)
-			}
-			else{
-				console.log('ne uznal')
-			}
-	})	
-}
-
-async function jipa() {
-	Region.findOne().exec((err, reg) => {
-		if (err) return handleError(err);
-		console.log(reg)
-		region = reg
-		console.log(region)
-		await jopa
-	})
 }*/
 
 /*fetch('/register', {
@@ -213,19 +185,16 @@ async function jipa() {
     body: JSON.stringify({login: 'test', password: 'test'}) 
   })
   .then(res => (console.log(res, res.headers), res.json()))
-  .then(json => localStorage.setItem("tokenavelli", JSON.stringify(json)))*/
+  .then(json => localStorage.setItem("tokenavelli", JSON.parse(json)))
 
-/*fetch('/autologin', {
-method: 'POST',
-headers: {
-  'Accept': 'application/json',
-  'Content-Type': 'application/json'
-},
-body: JSON.stringify(JSON.parse(localStorage.getItem('tokenavelli'))) 
-}).then(res => (console.log(res, res.headers), res.json()))
-.then(json => console.log(json))
-
-
+fetch('/getParams', {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+  }).then(res => (console.log(res, res.headers), res.json()))
+    .then(json => console.log(json))
 
 fetch('/createAd', {
     method: 'POST',
@@ -288,26 +257,28 @@ app.post('/register', async (req,res) => {
 })
 
 app.post('/login', async (req,res) => {//сделать прроверку есть ли токен
-	let user = await User.findOne(req.body)
-	console.log(user)
+	let user
+	if(req.headers.authorization.substr("Bearer ".length) > 0){
+		let token = req.headers.authorization.substr("Bearer ".length)
+    	let decoded = jwt.verify(token, secret)
+		console.log('id ', decoded.user._id)
+    	user = await User.findOne({_id: decoded.user._id})
+		console.log('authorization ',user)
+	}
+	else {
+		if (req.body.password) {
+			user = await User.findOne(req.body)
+			console.log('body ',user)
+		}		
+	}
 	if(user) {
 		let {password, ...userInfo} = user.toObject()
 		const token = jwt.sign({user: userInfo}, secret)
+		console.log(token)
 		res.status(201).json(token)
 	}
 	else{
 		res.status(404).json('login or password is not correct')
-	}
-})
-
-app.post('/autologin', async (req,res) => {
-	let user = await User.findOne(jwtCheck(req.body, secret))
-	if(user) {
-		let {password, ...userInfo} = user.toObject()
-		res.status(201).json(userInfo)
-	}
-	else{
-		res.status(404)
 	}
 })
 
@@ -333,14 +304,29 @@ app.get('/getAdsbyUser', async(req, res) => {//?
 	Promise.all(adsPromises).then(ads => ads? res.status(201).json(ads): res.status(404))
 })
 
+app.get('/getAdsbySearch', async(req, res) => {//?
+	let token = req.headers.authorization.substr("Bearer ".length)
+    let decoded = jwt.verify(token, secret)
+    console.log('decoded ',decoded)
+	//let user = await User.findOne({_id: decoded.user._id})
+	let adsPromises = []
+	adsPromises = decoded.user.ads.map(async adId => {
+		return await CarAd.findOne({_id: adId})
+	})
+	Promise.all(adsPromises).then(ads => ads? res.status(201).json(ads): res.status(404))
+})
+
 app.post('/createAd', async(req, res) => {
 	let token = req.headers.authorization.substr("Bearer ".length)
     let decoded = jwt.verify(token, secret)
 	let user = await User.findOne({_id: decoded.user._id})
+	let status = await Status.findOne({name: 'active'})
 	let ad = new CarAd(req.body.ad)
 	ad._id = new mongoose.Types.ObjectId()
 	ad.user = decoded.user._id
 	await ad.save()
+	status.ads.push(ad._id)
+	await status.save()
 	user.ads.push(ad._id)
 	await user.save()
 	let {password, ...userInfo} = user.toObject()
@@ -356,6 +342,53 @@ app.delete('/deleteAd', async(req, res) => {
 	await CarAd.deleteOne(ad)
 	let {password, ...userInfo} = user.toObject()
 	res.status(201).json(userInfo)
+})
+
+app.get('/getParams', async(req, res) => {
+	let params = {}
+	let rs = await Released.find({}, '-ads')
+	params['realeased'] = rs
+	let af = await AfterCrash.find({}, '-ads')
+	params['aftercrash'] = af
+	let rn = await Running.find({}, '-ads')
+	params['running'] = rn
+	let mf = await Manufactor.find().populate('models')
+	let manuf = mf.map(manufactor => {
+		let {models, ...result} = manufactor
+		let mdls = models.map(model => {
+			let {name, _id, ...rest} = model
+			return {name, _id};
+		})
+		return {name: manufactor.name, _id:manufactor._id, models:mdls}
+	})
+	params['manufactor'] = manuf
+	let rg = await Region.find().populate('cities')
+	let reg = rg.map(region => {
+		let {cities, ...result} = region
+		let cts = cities.map(city => {
+			let {name, _id, ...rest} = city
+			return {name, _id};
+		})
+		return {name: region.name, _id:region._id, cities:cts}
+	})
+	params['regions'] = reg
+	let bt = await BodyType.find({}, '-ads')
+	params['bodyTypes'] = bt
+	let ft = await FuelType.find({}, '-ads')
+	params['fuelTypes'] = ft
+	let gt = await GearboxType.find({}, '-ads')
+	params['gearboxTypes'] = gt
+	let dt = await DrivetrainType.find({}, '-ads')
+	params['drivetrainTypes'] = dt
+	let cr = await Color.find({}, '-ads')
+	params['colors'] = cr
+	console.log('keys',Object.keys(params))
+	if(params) {
+		res.status(201).json(params)
+	}
+	else{
+		res.status(404).json('not found')
+	}
 })
 
 db.on('error', console.error.bind(console, 'connection error:'))

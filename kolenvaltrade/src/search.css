@@ -1,0 +1,10 @@
+label {	
+	display: block;
+	text-align: center;
+	width: 100%;
+}
+
+label div {
+	margin: 0 auto 0;
+	width: 90%;
+}
