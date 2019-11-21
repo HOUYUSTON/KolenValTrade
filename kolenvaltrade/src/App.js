@@ -13,7 +13,7 @@ import Button from 'react-bootstrap/Button';
 
 const history = require("history")
 const createHistory = history.createBrowserHistory
-
+const createdHistory = createHistory()
 const jwtDecode = require('jwt-decode');
 
 const forbidden = [
@@ -108,16 +108,23 @@ const delay = ms => new Promise(ok => setTimeout(ok,ms))
 
 store.subscribe(() => console.log('store.getState ', store.getState()))
 
-const actionADS = () => {
+const logout = function() {
+  localStorage.removeItem('tokenavelli')
+  window.location.reload()
+}
+
+const actionADS = (obj) => {
   fetch("/getAds",{
-    method: "GET",
+    method: "POST",
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
-    }
+    },
+    body: JSON.stringify(obj)
   })
   .then(res => res.json())
   .then(ads => {
+    console.log('action')
     store.dispatch({type: 'ADS', ads}) 
   })
   return {
@@ -143,22 +150,26 @@ const actionParams = () => {
   }
 }
 
-const actionSearch = () => {
-  fetch('/getAdsbySearch', {
-    method: 'GET',
+const actionCreateAd = (obj) => {
+  fetch('/createAd', {
+    method: 'POST',
     headers: {
       'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + localStorage.getItem('tokenavelli')
+  },
+    body: JSON.stringify(obj)
   })
-    .then(res => res.json())
-    .then(params => {
-      console.log('action ', params)
-      store.dispatch({type: 'PARAMS', params})
-    })
-  return {
-    type: 'PARAMS_PENDING'
-  }
+  .then(res => 
+      res.status === 201? res.json() : store.dispatch({type: 'FAILED'})
+    )
+  .then(json => {
+    localStorage.setItem("tokenavelli", json)
+    store.dispatch({type: 'SENT'})
+    store.dispatch(actionADS())
+    createdHistory.push('/')
+  })
+  return {type: 'SENDING'}
 }
 
 const actionRegister = (mail, password, name, phone) => {
@@ -173,7 +184,10 @@ const actionRegister = (mail, password, name, phone) => {
     .then(res => 
       res.status === 201? res.json() : store.dispatch({type: 'FAILED'})
     )
-    .then(json => store.dispatch({type: 'SENT'}))//returns userInfo
+    .then(json => {
+      createdHistory.push('/login')
+      store.dispatch({type: 'SENT'})//returns userInfo
+    })
   return {type: 'SENDING'}
 }
 
@@ -182,7 +196,8 @@ const actionLogin = (login, password) => {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + localStorage.getItem('tokenavelli')
     },
     body: JSON.stringify({login: login, password: password})
   })
@@ -192,7 +207,8 @@ const actionLogin = (login, password) => {
     .then(json => {
       localStorage.setItem("tokenavelli", json)
       store.dispatch({type: 'SENT'})
-      history.push('/')
+      createdHistory.push('/')
+      window.location.reload()
     })
   return {type: 'SENDING'}
 }
@@ -480,8 +496,8 @@ class SearchForm extends React.Component{
   }
 
   render(){
-    console.log('render', this.state)
-    let params = this.state.params//объект со всеми массивами
+    console.log('render', this.state)    
+    let {params, className, ...obj} = this.state//объект со всеми массивами
     if(params){
       for(let param in params){
         params[param].forEach(elem => {
@@ -499,10 +515,6 @@ class SearchForm extends React.Component{
     let selects = []
     for(let param in params){
       let key = Object.keys(params[param][0]).filter(k => ['__v', 'value', 'label'].indexOf(k) === -1)//проверка свойства
-      // console.log('key',key)
-      // console.log('paramsParam',params[param][0])
-      // console.log('paramKey',params[param][0][key])
-      // console.log('param',param)
       let options = []
       if(key[0]){
         options = this.filteredOptions(params[param], key[0])
@@ -524,19 +536,28 @@ class SearchForm extends React.Component{
               onChange = {o => {
                 let field = this.state[param]
                 this.setState({[param]: o})
-                // console.log('field',{[param]: o})
-                // field = o
-                // console.log('fieldNew',field)
-                // this.setState({field})
               }}
             />
           </label>        
         </div>
       )
     }
+    for(let field in obj){
+      if(obj[field].value != undefined){
+        obj[field] = obj[field].value
+      }
+      else{
+        delete obj[field]
+      }
+    }
+    console.log('onSend',obj)
+    console.log('action',this.props.onSend)
     return(
-      <div class={this.state.className}>
+      <div class={className}>
         {selects}
+        <button class='btn btn-secondary' onClick={() => {
+          this.props.onSend(obj)
+        }}>Search</button>
       </div>
     )
   }
@@ -645,22 +666,44 @@ const mapStateToProps = (state) => ({
 let AdsHistoryConnected = connect(st => ({ads: st.history.ads}), null)(Ads)
 let LoginConnected = connect(st => ({status: st.logReg.status}), {onSend: actionLogin})(LoginForm)
 let RegisterConnected = connect(st => ({status: st.logReg.status}), {onSend: actionRegister})(RegisterForm)
-let SearchConnected = connect(st => ({params: st.search.params}), null)(SearchForm)
+let SearchConnected = connect(st => ({params: st.search.params}), {onSend: actionADS})(SearchForm)
+let CreateAdConnected = connect(st => ({params: st.search.params}), {onSend: actionCreateAd})(SearchForm)
 
 function App() {
-  return (
-    <Provider store={store}>
-      <Router history = {createHistory()}>
-        <header />
+  let components
+  if(localStorage.getItem('tokenavelli')){
+    components = function(){
+      return(
+        <div>
+          <RedirectButton class='btn btn-warning' name='createAd' path='/createAd'/>
+          <Link class='btn btn-secondary' onClick = {logout}>Log out</Link>
+        </div>
+      )      
+    }
+  }
+  else{
+    components = function(){
+      return(
         <div>
           <RedirectButton class='btn btn-secondary' name='login' path='/login'/>
           <RedirectButton class='btn btn-info' name='register' path='/register'/>
+        </div>
+      )
+    }
+  }
+  return (
+    <Provider store={store}>
+      <Router history = {createdHistory}>
+        <header />
+        <div>
+          {components()}
           <SearchConnected />
           <Switch>
             <Route path="/" component = {AdsHistoryConnected} exact />
             <Route path="/ad/:id" component = {zaglushka} exact />
             <Route path="/login" component = {LoginConnected} exact />
             <Route path="/register" component = {RegisterConnected} exact />
+            <Route path="/createAd" component = {CreateAdConnected} exact />
           </Switch>
           <footer />
         </div>

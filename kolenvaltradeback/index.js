@@ -151,7 +151,8 @@ function jwtWare() {
             '/getAds',
             '/getParams',
             '/favicon.ico',
-            '/babel/parser/lib/index.js'
+            '/babel/parser/lib/index.js',
+            '/getAdsbySearch'
         ]
     });
 }
@@ -180,12 +181,13 @@ function jwtWare() {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + localStorage.getItem('tokenavelli')
     },
     body: JSON.stringify({login: 'test', password: 'test'}) 
   })
   .then(res => (console.log(res, res.headers), res.json()))
-  .then(json => localStorage.setItem("tokenavelli", JSON.parse(json)))
+  .then(json => localStorage.setItem("tokenavelli", json))
 
 fetch('/getParams', {
     method: 'GET',
@@ -282,8 +284,9 @@ app.post('/login', async (req,res) => {//сделать прроверку ес�
 	}
 })
 
-app.get('/getAds', async(req, res) => {
-	let ads = await CarAd.find(req.body.ad)
+app.post('/getAds', async(req, res) => {
+	console.log('req.body ',req.body)
+	let ads = await CarAd.find(req.body)
 	if(ads) {
 		res.status(201).json(ads)
 	}
@@ -304,24 +307,13 @@ app.get('/getAdsbyUser', async(req, res) => {//?
 	Promise.all(adsPromises).then(ads => ads? res.status(201).json(ads): res.status(404))
 })
 
-app.get('/getAdsbySearch', async(req, res) => {//?
-	let token = req.headers.authorization.substr("Bearer ".length)
-    let decoded = jwt.verify(token, secret)
-    console.log('decoded ',decoded)
-	//let user = await User.findOne({_id: decoded.user._id})
-	let adsPromises = []
-	adsPromises = decoded.user.ads.map(async adId => {
-		return await CarAd.findOne({_id: adId})
-	})
-	Promise.all(adsPromises).then(ads => ads? res.status(201).json(ads): res.status(404))
-})
-
 app.post('/createAd', async(req, res) => {
+	console.log('req.body ',req.body)
 	let token = req.headers.authorization.substr("Bearer ".length)
     let decoded = jwt.verify(token, secret)
 	let user = await User.findOne({_id: decoded.user._id})
 	let status = await Status.findOne({name: 'active'})
-	let ad = new CarAd(req.body.ad)
+	let ad = new CarAd(req.body)
 	ad._id = new mongoose.Types.ObjectId()
 	ad.user = decoded.user._id
 	await ad.save()
