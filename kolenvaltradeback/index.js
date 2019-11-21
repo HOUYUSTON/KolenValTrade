@@ -352,7 +352,8 @@ app.get('/getParams', async(req, res) => {
 	params['aftercrash'] = af
 	let rn = await Running.find({}, '-ads')
 	params['running'] = rn
-	let mf = await Manufactor.find().populate('models')
+	let mf = await Manufactor.find({}, '-models')
+	/*let mf = await Manufactor.find().populate('models')
 	let manuf = mf.map(manufactor => {
 		let {models, ...result} = manufactor
 		let mdls = models.map(model => {
@@ -360,9 +361,12 @@ app.get('/getParams', async(req, res) => {
 			return {name, _id};
 		})
 		return {name: manufactor.name, _id:manufactor._id, models:mdls}
-	})
-	params['manufactor'] = manuf
-	let rg = await Region.find().populate('cities')
+	})*/
+	params['manufactor'] = mf
+	let md = await Model.find()
+	params['model'] = md
+	let rg = await Region.find({}, '-cities')
+	/*let rg = await Region.find().populate('cities')
 	let reg = rg.map(region => {
 		let {cities, ...result} = region
 		let cts = cities.map(city => {
@@ -370,19 +374,20 @@ app.get('/getParams', async(req, res) => {
 			return {name, _id};
 		})
 		return {name: region.name, _id:region._id, cities:cts}
-	})
-	params['regions'] = reg
+	})*/
+	params['region'] = rg
+	let ct = await City.find({}, '-ads')
+	params['city'] = ct
 	let bt = await BodyType.find({}, '-ads')
-	params['bodyTypes'] = bt
+	params['bodyType'] = bt
 	let ft = await FuelType.find({}, '-ads')
-	params['fuelTypes'] = ft
+	params['fuelType'] = ft
 	let gt = await GearboxType.find({}, '-ads')
-	params['gearboxTypes'] = gt
+	params['gearboxType'] = gt
 	let dt = await DrivetrainType.find({}, '-ads')
-	params['drivetrainTypes'] = dt
+	params['drivetrainType'] = dt
 	let cr = await Color.find({}, '-ads')
-	params['colors'] = cr
-	console.log('keys',Object.keys(params))
+	params['color'] = cr
 	if(params) {
 		res.status(201).json(params)
 	}

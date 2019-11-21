@@ -442,12 +442,6 @@ class RegisterForm extends React.Component {
   }
 }
 
-const options = [
-  { value: 'chocolate', label: 'Chocolate' },
-  { value: 'strawberry', label: 'Strawberry' },
-  { value: 'vanilla', label: 'Vanilla' }
-]
-
 class SearchForm extends React.Component{
   constructor(props){
     super(props)
@@ -458,57 +452,103 @@ class SearchForm extends React.Component{
   }
 
   componentDidMount(){
-    console.log('didmount')
-    store.dispatch(actionParams())
-    this.setState({params: this.props.params})
+    fetch('/getParams', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => res.json())
+    .then(params => {
+      let obj = {}
+      for(let param in params){
+        obj[param] = {}
+      }
+      obj.params = params
+      this.setState(obj)
+      /*let selected = {}
+      for(let param in params){
+        selected[param] = {}
+      }
+      this.setState({params: params, selected: selected})*/
+    })
   }
 
-  componentDidUpdate(){
-    console.log('update')
+  filteredOptions = (opt, param) => {
+    return opt.filter(optn => optn[param] === this.state[param].value)
   }
 
   render(){
-    console.log('search', this.props.params)
-    let params = this.props.params
+    console.log('render', this.state)
+    let params = this.state.params//объект со всеми массивами
     if(params){
       for(let param in params){
         params[param].forEach(elem => {
-          /*let array = []
-          let keys = Object.keys(elem)
-          let arrKey = ''
-          keys.forEach(key => {
-            if(Array.isArray(elem[key])){
-              console.log('isArray',key)
-              arrKey = key
-              array = array.concat(elem[key])
-              console.log('array',array)
-              delete elem[key]
-            }
-          })
-          console.log('arrKey',arrKey)
-          if(array.length > 0){
-            param[arrKey] = array
-          }*/
-          elem.value = elem._id
-          elem.label = elem.name
-          delete elem._id
-          delete elem.name
+          if(elem._id){
+            elem.value = elem._id
+            delete elem._id
+          }
+          if(elem.name){
+            elem.label = elem.name            
+            delete elem.name
+          }
         })
       }
-      console.log('params',params)
+    }
+    let selects = []
+    for(let param in params){
+      let key = Object.keys(params[param][0]).filter(k => ['__v', 'value', 'label'].indexOf(k) === -1)//проверка свойства
+      // console.log('key',key)
+      // console.log('paramsParam',params[param][0])
+      // console.log('paramKey',params[param][0][key])
+      // console.log('param',param)
+      let options = []
+      if(key[0]){
+        options = this.filteredOptions(params[param], key[0])
+      }
+      else{
+        options = params[param]
+      }
+      selects.push(
+        <div>
+          <label>
+            {param.toString()}
+            <Select
+              value = {this.state[param]}
+              id={param.toString()}
+              name={param.toString()}
+              options={options}
+              className="basic-multi-select"
+              classNamePrefix="select"
+              onChange = {o => {
+                let field = this.state[param]
+                this.setState({[param]: o})
+                // console.log('field',{[param]: o})
+                // field = o
+                // console.log('fieldNew',field)
+                // this.setState({field})
+              }}
+            />
+          </label>        
+        </div>
+      )
     }
     return(
       <div class={this.state.className}>
-        {Adparams(params)}
+        {selects}
       </div>
     )
   }
 }
 
-let Adparams = (params) => //<select>{this.state.options.map((option, idx) => <option value={option}>{option}</option>)}</select>
+/*let Adparams = (params) => //<select>{this.state.options.map((option, idx) => <option value={option}>{option}</option>)}</select>
 {
   let selects = []
   for(let param in params){
+    let keys = Object.keys(params[param])
+
+    let options = keys > 2 ? filteredOptions(params[param], params[param][keys[2]]) :params[param]
     selects.push(
       <div>
         <label>
@@ -516,9 +556,9 @@ let Adparams = (params) => //<select>{this.state.options.map((option, idx) => <o
           <Select
             id={param.toString()}
             name={param.toString()}
-            options={params[param]}
+            options={options}
             className="basic-multi-select"
-            classNamePrefix="select"
+            classNamePrefix="select"            
           />
         </label>        
       </div>
@@ -529,7 +569,7 @@ let Adparams = (params) => //<select>{this.state.options.map((option, idx) => <o
       {selects}
     </div>
   )
-}
+}*/
 
 class RedirectButton extends React.Component{//нужно создать элемент этого класса и передать ему {name: 'Log In', path: '/login'}
   constructor(props){
@@ -559,7 +599,6 @@ let Advertisement = ({ad}) =>
 </div>
 
 let Ads = function({ads}){
-  console.log('ads',ads)
   return(
     <div>
       {ads.map(ad => <Advertisement key = {ad._id} ad={ad} />)}
