@@ -55,7 +55,6 @@ const searchReducer = (state, action) => {
     }
   }
   if(type === 'PARAMS'){
-    console.log('reducer params ',action.params)
     return {
       ...state,
       status: 'SENT',
@@ -124,7 +123,6 @@ const actionADS = (obj) => {
   })
   .then(res => res.json())
   .then(ads => {
-    console.log('action')
     store.dispatch({type: 'ADS', ads}) 
   })
   return {
@@ -142,7 +140,6 @@ const actionParams = () => {
   })
     .then(res => res.json())
     .then(params => {
-      console.log('action ', params)
       store.dispatch({type: 'PARAMS', params})
     })
   return {
@@ -425,7 +422,6 @@ class RegisterForm extends React.Component {
   }
 
   render () {
-    console.log('status ', this.props.status)
     return(
       <div>
         <input name='login' value = {this.state.login}
@@ -482,6 +478,10 @@ class SearchForm extends React.Component{
         obj[param] = {}
       }
       obj.params = params
+      if(this.props.type === 'create'){
+        obj.price = ''
+        obj.productionDate = ''
+      }
       this.setState(obj)
       /*let selected = {}
       for(let param in params){
@@ -495,8 +495,34 @@ class SearchForm extends React.Component{
     return opt.filter(optn => optn[param] === this.state[param].value)
   }
 
+  handleUserInput = (e) => {
+    this.setState({[e.target.name]: e.target.value})
+  }
+
   render(){
-    console.log('render', this.state)    
+    let inputs = []
+    if(this.props.type === 'create'){
+      inputs.push(
+        <div>
+          <label>
+          price
+            <input name='price' value = {this.state.price}
+              onChange = {this.handleUserInput}
+            />
+          </label>
+        </div>
+      )
+      inputs.push(
+        <div>
+          <label>
+            productionDate
+            <input name='productionDate' value = {this.state.productionDate}
+              onChange = {this.handleUserInput}
+            />
+          </label>
+        </div>
+      )
+    }
     let {params, className, ...obj} = this.state//объект со всеми массивами
     if(params){
       for(let param in params){
@@ -543,6 +569,9 @@ class SearchForm extends React.Component{
       )
     }
     for(let field in obj){
+      if(typeof obj[field] === 'string' && obj[field] != ''){
+        continue
+      }
       if(obj[field].value != undefined){
         obj[field] = obj[field].value
       }
@@ -550,14 +579,13 @@ class SearchForm extends React.Component{
         delete obj[field]
       }
     }
-    console.log('onSend',obj)
-    console.log('action',this.props.onSend)
     return(
       <div class={className}>
         {selects}
+        {inputs}
         <button class='btn btn-secondary' onClick={() => {
           this.props.onSend(obj)
-        }}>Search</button>
+        }}>{this.props.type}</button>
       </div>
     )
   }
@@ -613,9 +641,9 @@ let zaglushka = () =>
 let Advertisement = ({ad}) =>
 <div>
   <img src={ad.photos[0]} alt='Машина'></img>
-  <h4>{ad.manufactor} {ad.model}</h4>
+  <h4>{ad.model.manufactor} {ad.model} {ad.price}</h4>
   <p>
-    {ad.gearboxType} {ad.fuelType} {ad.price}
+    {ad.description} {ad.productionDate}
   </p>
 </div>
 
@@ -640,7 +668,6 @@ let Search = ({param}) =>
 </div>
 
 let Searches = function({params}){
-  console.log('ss',params)
   return(
     <div>
       {Object.keys(params)}
@@ -666,8 +693,8 @@ const mapStateToProps = (state) => ({
 let AdsHistoryConnected = connect(st => ({ads: st.history.ads}), null)(Ads)
 let LoginConnected = connect(st => ({status: st.logReg.status}), {onSend: actionLogin})(LoginForm)
 let RegisterConnected = connect(st => ({status: st.logReg.status}), {onSend: actionRegister})(RegisterForm)
-let SearchConnected = connect(st => ({params: st.search.params}), {onSend: actionADS})(SearchForm)
-let CreateAdConnected = connect(st => ({params: st.search.params}), {onSend: actionCreateAd})(SearchForm)
+let SearchConnected = connect(st => ({params: st.search.params, type: 'search'}), {onSend: actionADS})(SearchForm)
+let CreateAdConnected = connect(st => ({params: st.search.params, type: 'create'}), {onSend: actionCreateAd})(SearchForm)///////
 
 function App() {
   let components

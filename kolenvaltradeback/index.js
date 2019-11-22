@@ -19,7 +19,7 @@ var userSchema = new mongoose.Schema({
 	photos: [String],
 	phones: [String],
 	name: String,
-	privilege: Boolean
+	//privilege: Boolean
 })
 
 var citySchema = new mongoose.Schema({
@@ -258,9 +258,9 @@ app.post('/register', async (req,res) => {
 	}
 })
 
-app.post('/login', async (req,res) => {//сделать прроверку есть ли токен
+app.post('/login', async (req,res) => {
 	let user
-	if(req.headers.authorization.substr("Bearer ".length) > 0){
+	if(req.headers.authorization.substr("Bearer ".length).length > 0){
 		let token = req.headers.authorization.substr("Bearer ".length)
     	let decoded = jwt.verify(token, secret)
 		console.log('id ', decoded.user._id)
@@ -286,9 +286,18 @@ app.post('/login', async (req,res) => {//сделать прроверку ес�
 
 app.post('/getAds', async(req, res) => {
 	console.log('req.body ',req.body)
-	let ads = await CarAd.find(req.body)
-	if(ads) {
-		res.status(201).json(ads)
+	let a = await CarAd.find()/*.populate('model')
+	let ads = a.map(ad => {
+		console.log('adName',ad.model.name)
+		let model = ad.model.name
+		delete ad.model
+		ad.model = model
+		console.log('ad',ad)
+		return ad
+	})*/
+	console.log('ads',a)
+	if(a) {
+		res.status(201).json(a)
 	}
 	else{
 		res.status(404)
@@ -308,32 +317,48 @@ app.get('/getAdsbyUser', async(req, res) => {//?
 })
 
 app.post('/createAd', async(req, res) => {
-	console.log('req.body ',req.body)
-	let token = req.headers.authorization.substr("Bearer ".length)
-    let decoded = jwt.verify(token, secret)
-	let user = await User.findOne({_id: decoded.user._id})
-	let status = await Status.findOne({name: 'active'})
-	let ad = new CarAd(req.body)
-	ad._id = new mongoose.Types.ObjectId()
-	ad.user = decoded.user._id
-	await ad.save()
-	status.ads.push(ad._id)
-	await status.save()
-	user.ads.push(ad._id)
-	await user.save()
-	let {password, ...userInfo} = user.toObject()
-	token = jwt.sign({user: userInfo}, secret)
-	res.status(201).json(token)
+	if(req.headers.authorization.substr("Bearer ".length).length > 0){
+		let token = req.headers.authorization.substr("Bearer ".length)
+    	let decoded = jwt.verify(token, secret)
+    	user = await User.findOne({_id: decoded.user._id})
+		let status = await Status.findOne({name: 'active'})
+		let ad = new CarAd(req.body)
+		ad._id = new mongoose.Types.ObjectId()
+		ad.user = decoded.user._id
+		await ad.save()
+		status.ads.push(ad._id)
+		await status.save()
+		user.ads.push(ad._id)
+		await user.save()
+		let {password, ...userInfo} = user.toObject()
+		token = jwt.sign({user: userInfo}, secret)
+		res.status(201).json(token)
+	}
+	else{
+		res.status(409).json('unauthorized')
+	}
 })
 
 app.delete('/deleteAd', async(req, res) => {
-	let user = await User.findOne(req.body.user)
-	let ad = await CarAd.findOne(req.body.adId)
-	user.ads.splice(user.ads.indexOf(ad._id), 1)
-	await user.save()
-	await CarAd.deleteOne(ad)
-	let {password, ...userInfo} = user.toObject()
-	res.status(201).json(userInfo)
+	if(req.headers.authorization.substr("Bearer ".length).length > 0){
+		let token = req.headers.authorization.substr("Bearer ".length)
+    	let decoded = jwt.verify(token, secret)
+		console.log('id ', decoded.user._id)
+    	user = await User.findOne({_id: decoded.user._id})
+		console.log('authorization ',user)
+		let ad = await CarAd.findOne(req.body.adId)
+		let activeStatus = await Status.findOne({name: 'active'})
+		activeStatus.ads.splice(user.ads.indexOf(ad._id), 1)
+		user.ads.splice(user.ads.indexOf(ad._id), 1)
+		await user.save()
+		await activeStatus.save()
+		await CarAd.deleteOne(ad)
+		let {password, ...userInfo} = user.toObject()
+		res.status(201).json(userInfo)
+	}
+	else{
+		res.status(409).json('unauthorized')
+	}
 })
 
 app.get('/getParams', async(req, res) => {
