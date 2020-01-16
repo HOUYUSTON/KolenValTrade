@@ -260,7 +260,8 @@ app.post('/register', async (req,res) => {
 
 app.post('/login', async (req,res) => {
 	let user
-	if(req.headers.authorization.substr("Bearer ".length).length > 0){
+	console.log('login',req.headers.authorization.substr("Bearer ".length).length)
+	if(req.headers.authorization.substr("Bearer ".length).length > 4){
 		let token = req.headers.authorization.substr("Bearer ".length)
     	let decoded = jwt.verify(token, secret)
 		console.log('id ', decoded.user._id)
@@ -286,7 +287,7 @@ app.post('/login', async (req,res) => {
 
 app.post('/getAds', async(req, res) => {
 	console.log('req.body ',req.body)
-	let a = await CarAd.find()/*.populate('model')
+	let a = await CarAd.find(req.body)/*.populate('model')
 	let ads = a.map(ad => {
 		console.log('adName',ad.model.name)
 		let model = ad.model.name
@@ -317,7 +318,7 @@ app.get('/getAdsbyUser', async(req, res) => {//?
 })
 
 app.post('/createAd', async(req, res) => {
-	if(req.headers.authorization.substr("Bearer ".length).length > 0){
+	if(req.headers.authorization.substr("Bearer ".length).length > 4){
 		let token = req.headers.authorization.substr("Bearer ".length)
     	let decoded = jwt.verify(token, secret)
     	user = await User.findOne({_id: decoded.user._id})
@@ -340,7 +341,7 @@ app.post('/createAd', async(req, res) => {
 })
 
 app.delete('/deleteAd', async(req, res) => {
-	if(req.headers.authorization.substr("Bearer ".length).length > 0){
+	if(req.headers.authorization.substr("Bearer ".length).length > 4){
 		let token = req.headers.authorization.substr("Bearer ".length)
     	let decoded = jwt.verify(token, secret)
 		console.log('id ', decoded.user._id)

@@ -123,7 +123,35 @@ fetch('https://developers.ria.com/auto/categories/1/marks?api_key=3cbJxz8IpEvwHN
 	})
 })*/
 
-/*let bodyTypes
+let options = [
+    { name: "да"},
+    { name: "нет"}
+]
+
+options.forEach(async option => {
+		let tmp = new AfterCrash(option)
+		tmp._id = new mongoose.Types.ObjectId()
+		await tmp.save().then(() => console.log(tmp.name + ' saved'))
+		let jmp = new Released(option)
+		jmp._id = new mongoose.Types.ObjectId()
+		await jmp.save().then(() => console.log(jmp.name + ' saved'))
+		let nmp = new Running(option)
+		nmp._id = new mongoose.Types.ObjectId()
+		await nmp.save().then(() => console.log(nmp.name + ' saved'))
+	})
+
+let status = [
+    { name: "active"},
+    { name: "unactive"}
+]
+
+status.forEach(async st => {
+		let tmp = new Status(st)
+		tmp._id = new mongoose.Types.ObjectId()
+		await tmp.save().then(() => console.log(tmp.name + ' saved'))
+	})
+
+let bodyTypes
 
 fetch('https://developers.ria.com/auto/categories/1/bodystyles?api_key=3cbJxz8IpEvwHNJV9RkSP4k0195ijn0Hl5mALs2t', {
   method: 'GET',
@@ -173,6 +201,36 @@ let gearboxTypes = [
 gearboxTypes.forEach(async gearboxType => {
 		let {value, ...name} = gearboxType
 		let jmp = new GearboxType(name)
+		jmp._id = new mongoose.Types.ObjectId()
+		await jmp.save().then(() => console.log(jmp.name + ' saved'))
+	})
+
+let drivetrainTypes = [
+    { name: "Передний", value: 1 },
+    { name: "Задний", value: 2 },
+    { name: "Полный", value: 3 },
+    { name: "4x4", value: 4 }
+]
+
+drivetrainTypes.forEach(async drivetrainType => {
+		let {value, ...name} = drivetrainType
+		let jmp = new DrivetrainType(name)
+		jmp._id = new mongoose.Types.ObjectId()
+		await jmp.save().then(() => console.log(jmp.name + ' saved'))
+	})
+
+let colors = [
+    { name: "красный"},
+    { name: "зелёный"},
+    { name: "белый"},
+    { name: "серый"},
+    { name: "коричневый"},
+    { name: "жёлтый"},
+    { name: "серебристый"}
+]
+
+colors.forEach(async color => {
+		let jmp = new Color(color)
 		jmp._id = new mongoose.Types.ObjectId()
 		await jmp.save().then(() => console.log(jmp.name + ' saved'))
 	})*/

@@ -538,6 +538,7 @@ class SearchForm extends React.Component{
         })
       }
     }
+    console.log('obj',obj)
     let selects = []
     for(let param in params){
       let key = Object.keys(params[param][0]).filter(k => ['__v', 'value', 'label'].indexOf(k) === -1)//проверка свойства
@@ -549,7 +550,7 @@ class SearchForm extends React.Component{
         options = params[param]
       }
       selects.push(
-        <div>
+        <div key = {param}>
           <label>
             {param.toString()}
             <Select
@@ -641,7 +642,7 @@ let zaglushka = () =>
 let Advertisement = ({ad}) =>
 <div>
   <img src={ad.photos[0]} alt='Машина'></img>
-  <h4>{ad.model.manufactor} {ad.model} {ad.price}</h4>
+  <h4>{ad.model.manufactor} {ad.model} {ad.price}$</h4>
   <p>
     {ad.description} {ad.productionDate}
   </p>
@@ -702,8 +703,12 @@ function App() {
     components = function(){
       return(
         <div>
+          <Link class='btn btn-light' onClick = {() => {
+            createdHistory.push('/')
+            window.location.reload()
+          }}>Main Page</Link>
           <RedirectButton class='btn btn-warning' name='createAd' path='/createAd'/>
-          <Link class='btn btn-secondary' onClick = {logout}>Log out</Link>
+          <Link class='btn btn-secondary' onClick = {logout}>Log out</Link>          
         </div>
       )      
     }
@@ -712,6 +717,10 @@ function App() {
     components = function(){
       return(
         <div>
+          <Link class='btn btn-light' onClick = {() => {
+            createdHistory.push('/')
+            window.location.reload()
+          }}>Main Page</Link>
           <RedirectButton class='btn btn-secondary' name='login' path='/login'/>
           <RedirectButton class='btn btn-info' name='register' path='/register'/>
         </div>
